@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Routine — Deadlines & Daily Tasks</title>
 <meta name="color-scheme" content="light dark">
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUm91dGluZSIsInNob3J0X25hbWUiOiJSb3V0aW5lIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNGN0Y0RUMiLCJ0aGVtZV9jb2xvciI6IiMxQzIzMjEifQ==">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <script type="module">
   /* =====================================================================
      ONE-TIME SETUP — do this once so Google sign-in & cross-device sync work.
@@ -306,8 +308,37 @@
   /* editable study fields */
   .study-edit{display:flex; align-items:center; gap:6px; margin-top:6px; flex-wrap:wrap;}
   .study-edit input[type="text"]{font-size:13px; padding:6px 9px; width:170px;}
-  .study-edit input.dur{width:90px;}
   .study-edit .field-label{font-size:10.5px; color:var(--slate); text-transform:uppercase; letter-spacing:.03em;}
+
+  .dur-picker-wrap{position:relative;}
+  .dur-picker-btn{
+    font-family:'Inter'; font-size:13px; cursor:pointer;
+    padding:6px 12px; border-radius:9px;
+    border:1px solid var(--line); background:var(--paper-raised); color:var(--ink);
+    min-width:88px; text-align:left;
+  }
+  .dur-picker-btn:hover{border-color:var(--gold);}
+  .dur-flyout{
+    position:absolute; top:calc(100% + 6px); left:0; z-index:20;
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:12px;
+    box-shadow:var(--shadow); padding:14px; min-width:200px;
+  }
+  .dur-flyout-row{display:flex; gap:12px;}
+  .dur-col{display:flex; flex-direction:column; gap:5px; flex:1;}
+  .dur-col-label{font-size:10.5px; color:var(--slate); text-transform:uppercase; letter-spacing:.03em;}
+  .dur-flyout select{
+    font-family:'Inter'; font-size:13.5px; padding:7px 8px;
+    border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink);
+  }
+  .dur-flyout-actions{display:flex; justify-content:space-between; gap:8px; margin-top:12px;}
+  .dur-flyout-actions button{
+    font-family:'Inter'; font-size:12px; font-weight:600; cursor:pointer;
+    border-radius:8px; padding:6px 12px; border:none;
+  }
+  .dur-clear{background:transparent; color:var(--slate); border:1px solid var(--line) !important;}
+  .dur-clear:hover{color:var(--clay-deep); border-color:var(--clay) !important;}
+  .dur-done{background:var(--sage-deeper); color:#fff;}
+  .dur-done:hover{filter:brightness(0.9);}
 
   /* shopping sublist */
   .shop-toggle{
@@ -674,26 +705,105 @@
         <span class="field-label">Topic</span>
         <input type="text" class="topic-input" placeholder="${t.label}" value="${escapeAttr(t.topic || '')}" maxlength="60">
         <span class="field-label">Duration</span>
-        <input type="text" class="dur dur-input" placeholder="e.g. 45 min" value="${escapeAttr(t.duration || '')}" maxlength="20">
+        <div class="dur-picker-wrap">
+          <button type="button" class="dur-picker-btn">${t.duration ? escapeAttr(t.duration) : 'Set time'}</button>
+          <div class="dur-flyout" hidden>
+            <div class="dur-flyout-row">
+              <div class="dur-col">
+                <span class="dur-col-label">Hours</span>
+                <select class="dur-hours"></select>
+              </div>
+              <div class="dur-col">
+                <span class="dur-col-label">Minutes</span>
+                <select class="dur-minutes"></select>
+              </div>
+            </div>
+            <div class="dur-flyout-actions">
+              <button type="button" class="dur-clear">Clear</button>
+              <button type="button" class="dur-done">Done</button>
+            </div>
+          </div>
+        </div>
       `;
       const topicInput = editWrap.querySelector('.topic-input');
-      const durInput = editWrap.querySelector('.dur-input');
       topicInput.addEventListener('input', () => {
         t.topic = topicInput.value;
         label.textContent = t.topic ? t.topic : t.label;
         save();
       });
-      durInput.addEventListener('input', () => {
-        t.duration = durInput.value;
-        save();
-      });
-      body.appendChild(editWrap);
-      if(t.duration){
-        const durTag = document.createElement('span');
-        durTag.className = 'field-label';
-        durTag.style.marginLeft = '6px';
-        durTag.textContent = '';
+
+      const durBtn = editWrap.querySelector('.dur-picker-btn');
+      const flyout = editWrap.querySelector('.dur-flyout');
+      const hoursSel = editWrap.querySelector('.dur-hours');
+      const minsSel = editWrap.querySelector('.dur-minutes');
+      const clearBtn = editWrap.querySelector('.dur-clear');
+      const doneBtn = editWrap.querySelector('.dur-done');
+
+      for(let h = 0; h <= 6; h++){
+        const opt = document.createElement('option');
+        opt.value = h;
+        opt.textContent = h + (h === 1 ? ' hr' : ' hrs');
+        hoursSel.appendChild(opt);
       }
+      for(let m = 0; m < 60; m += 5){
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m + ' min';
+        minsSel.appendChild(opt);
+      }
+
+      function parseDuration(str){
+        if(!str) return { h:0, m:0 };
+        const hMatch = str.match(/(\d+)\s*h/);
+        const mMatch = str.match(/(\d+)\s*m/);
+        return { h: hMatch ? parseInt(hMatch[1]) : 0, m: mMatch ? parseInt(mMatch[1]) : 0 };
+      }
+      function formatDuration(h, m){
+        if(h === 0 && m === 0) return '';
+        const parts = [];
+        if(h > 0) parts.push(h + (h === 1 ? ' hr' : ' hrs'));
+        if(m > 0) parts.push(m + ' min');
+        return parts.join(' ');
+      }
+
+      const initial = parseDuration(t.duration);
+      hoursSel.value = String(initial.h);
+      minsSel.value = String(Math.round(initial.m / 5) * 5);
+
+      function closeFlyout(){
+        flyout.hidden = true;
+        document.removeEventListener('click', outsideClickHandler);
+      }
+      function outsideClickHandler(e){
+        if(!editWrap.contains(e.target)) closeFlyout();
+      }
+      durBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = !flyout.hidden;
+        document.querySelectorAll('.dur-flyout').forEach(f => f.hidden = true);
+        if(!isOpen){
+          flyout.hidden = false;
+          setTimeout(() => document.addEventListener('click', outsideClickHandler), 0);
+        }
+      });
+      clearBtn.addEventListener('click', () => {
+        hoursSel.value = '0';
+        minsSel.value = '0';
+        t.duration = '';
+        durBtn.textContent = 'Set time';
+        save();
+        closeFlyout();
+      });
+      doneBtn.addEventListener('click', () => {
+        const h = parseInt(hoursSel.value);
+        const m = parseInt(minsSel.value);
+        t.duration = formatDuration(h, m);
+        durBtn.textContent = t.duration || 'Set time';
+        save();
+        closeFlyout();
+      });
+
+      body.appendChild(editWrap);
     }
 
     if(t.shopping){
@@ -946,11 +1056,19 @@
     };
     window.__ledgerSignOut = () => { fb.signOut(fb.auth); };
 
+    let localWriteInFlight = false;
+    let syncDebounceTimer = null;
+
     window.__ledgerSyncToCloud = (data) => {
       if(!currentUid || applyingRemote) return;
-      fb.setDoc(fb.doc(fb.db, 'users', currentUid), data, { merge:false }).catch(err => {
-        console.error('Routine: cloud save failed', err);
-      });
+      clearTimeout(syncDebounceTimer);
+      syncDebounceTimer = setTimeout(() => {
+        syncDebounceTimer = null;
+        localWriteInFlight = true;
+        fb.setDoc(fb.doc(fb.db, 'users', currentUid), data, { merge:false })
+          .catch(err => { console.error('Routine: cloud save failed', err); })
+          .finally(() => { localWriteInFlight = false; });
+      }, 700);
     };
 
     fb.onAuthStateChanged(fb.auth, async (user) => {
@@ -973,6 +1091,7 @@
           }
           fb.onSnapshot(fb.doc(fb.db, 'users', user.uid), (docSnap) => {
             if(!docSnap.exists()) return;
+            if(localWriteInFlight || syncDebounceTimer) return;
             applyingRemote = true;
             const remote = docSnap.data();
             state = { deadlines: remote.deadlines || [], days: remote.days || {} };
