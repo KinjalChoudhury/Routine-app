@@ -374,24 +374,45 @@
   .history-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; cursor:pointer; user-select:none;}
   .history-head h2{font-size:16px; font-weight:500; color:var(--slate);}
   .history-head .chev{
-  display:flex; align-items:center; justify-content:center;
-  width:28px; height:28px;
-  font-size:13px; color:var(--slate);
-  background:var(--paper-raised); border:1px solid var(--line); border-radius:8px;
-  transition:transform .2s, border-color .2s;
+    display:flex; align-items:center; justify-content:center;
+    width:28px; height:28px;
+    color:var(--slate);
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:8px;
+    transition:transform .2s, border-color .2s;
   }
   .history-head:hover .chev{border-color:var(--gold);}
   .history-body{display:none; flex-direction:column; gap:8px;}
   .history-body.open{display:flex;}
+
+  .hday-wrap{margin-bottom:2px;}
   .hday{
-    display:flex; align-items:center; justify-content:space-between;
+    display:flex; align-items:center; gap:10px;
     font-size:13px; color:var(--slate);
     background:var(--paper-raised); border:1px solid var(--line); border-radius:10px;
     padding:9px 14px;
   }
+  .hday-date{flex:1;}
   .hday .hbar{width:100px; height:6px; background:var(--line); border-radius:6px; overflow:hidden; margin-left:10px;}
   .hday .hbar-fill{height:100%; background:var(--sage);}
   .hday-row{display:flex; align-items:center;}
+
+  .hday-toggle{
+    display:flex; align-items:center; justify-content:center;
+    width:24px; height:24px; flex-shrink:0;
+    color:var(--slate);
+    background:var(--paper); border:1px solid var(--line); border-radius:7px;
+    cursor:pointer; transition:transform .2s, border-color .2s;
+  }
+  .hday-toggle:hover{border-color:var(--gold);}
+  .hday-toggle.open{transform:rotate(180deg);}
+
+  .hday-detail{
+    background:var(--paper); border:1px solid var(--line); border-top:none;
+    border-radius:0 0 10px 10px; padding:10px 16px 12px 46px; margin-top:-1px;
+  }
+  .hday-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:5px;}
+  .hday-list li{font-size:12.5px; color:var(--slate);}
+  .hday-list li.done{color:var(--sage-deep);}
 
   footer.note{max-width:920px; margin:8px auto 0; padding:0 20px 30px; font-size:11.5px; color:var(--slate); line-height:1.6;}
 
@@ -478,7 +499,7 @@
       <h2>Past days</h2>
       <span class="chev" id="historyChev">
         <svg viewBox="0 0 16 16" width="11" height="11" xmlns="http://www.w3.org/2000/svg">
-         <path d="M3 5.5C3 4.5 4.2 4 5 4.6L8 7L11 4.6C11.8 4 13 4.5 13 5.5C13 5.9 12.8 6.3 12.5 6.5L8.6 9.6C8.25 9.9 7.75 9.9 7.4 9.6L3.5 6.5C3.2 6.3 3 5.9 3 5.5Z" fill="currentColor"/>
+          <path d="M3 5.5C3 4.5 4.2 4 5 4.6L8 7L11 4.6C11.8 4 13 4.5 13 5.5C13 5.9 12.8 6.3 12.5 6.5L8.6 9.6C8.25 9.9 7.75 9.9 7.4 9.6L3.5 6.5C3.2 6.3 3 5.9 3 5.5Z" fill="currentColor"/>
         </svg>
       </span>
     </div>
@@ -577,6 +598,20 @@
       if(!state.days[TODAY].extra) state.days[TODAY].extra = [];
     }
     save();
+  }
+
+  function pruneOldDays(){
+    const cutoff = new Date(TODAY + 'T00:00:00');
+    cutoff.setDate(cutoff.getDate() - 45);
+    const cutoffISO = cutoff.getFullYear() + '-' + String(cutoff.getMonth()+1).padStart(2,'0') + '-' + String(cutoff.getDate()).padStart(2,'0');
+    let changed = false;
+    Object.keys(state.days).forEach(d => {
+      if(d < cutoffISO){
+        delete state.days[d];
+        changed = true;
+      }
+    });
+    if(changed) save();
   }
 
   // ---------- Deadlines ----------
@@ -969,7 +1004,7 @@
   const historyChev = document.getElementById('historyChev');
 
   function renderHistory(){
-    const dates = Object.keys(state.days).filter(d => d !== TODAY).sort((a,b) => b.localeCompare(a)).slice(0, 30);
+    const dates = Object.keys(state.days).filter(d => d !== TODAY).sort((a,b) => b.localeCompare(a)).slice(0, 45);
     historyBody.innerHTML = '';
     if(dates.length === 0){
       historyBody.innerHTML = '<div class="empty-today">No past days yet — they\'ll show up here once tomorrow begins.</div>';
@@ -983,17 +1018,63 @@
       const total = all.length;
       const done = all.filter(Boolean).length;
       const pct = total ? Math.round((done/total)*100) : 0;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'hday-wrap';
+
       const row = document.createElement('div');
       row.className = 'hday';
       row.innerHTML = `
-        <span></span>
+        <button type="button" class="hday-toggle" aria-label="Show details for ${fmtLong(d)}">
+          <svg viewBox="0 0 16 16" width="10" height="10" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 5.5C3 4.5 4.2 4 5 4.6L8 7L11 4.6C11.8 4 13 4.5 13 5.5C13 5.9 12.8 6.3 12.5 6.5L8.6 9.6C8.25 9.9 7.75 9.9 7.4 9.6L3.5 6.5C3.2 6.3 3 5.9 3 5.5Z" fill="currentColor"/>
+          </svg>
+        </button>
+        <span class="hday-date"></span>
         <div class="hday-row">
           <span>${done}/${total}</span>
           <span class="hbar"><span class="hbar-fill" style="width:${pct}%"></span></span>
         </div>
       `;
-      row.querySelector('span').textContent = fmtLong(d);
-      historyBody.appendChild(row);
+      row.querySelector('.hday-date').textContent = fmtLong(d);
+
+      const detail = document.createElement('div');
+      detail.className = 'hday-detail';
+      detail.hidden = true;
+
+      const ul = document.createElement('ul');
+      ul.className = 'hday-list';
+      fixed.forEach(t => {
+        const li = document.createElement('li');
+        li.className = t.done ? 'done' : '';
+        const nameText = (t.editable && t.topic) ? t.topic : t.label;
+        const durText = (t.editable && t.duration) ? ` (${t.duration})` : '';
+        li.textContent = (t.done ? '✓ ' : '— ') + nameText + durText;
+        ul.appendChild(li);
+      });
+      extra.forEach(t => {
+        const li = document.createElement('li');
+        li.className = t.done ? 'done' : '';
+        li.textContent = (t.done ? '✓ ' : '— ') + t.name + ' (today only)';
+        ul.appendChild(li);
+      });
+      if(fixed.length === 0 && extra.length === 0){
+        const li = document.createElement('li');
+        li.textContent = 'No tasks recorded for this day.';
+        ul.appendChild(li);
+      }
+      detail.appendChild(ul);
+
+      const toggleBtn = row.querySelector('.hday-toggle');
+      toggleBtn.addEventListener('click', () => {
+        const willOpen = detail.hidden === true;
+        detail.hidden = !willOpen;
+        toggleBtn.classList.toggle('open', willOpen);
+      });
+
+      wrap.appendChild(row);
+      wrap.appendChild(detail);
+      historyBody.appendChild(wrap);
     });
   }
 
@@ -1129,6 +1210,7 @@
   document.getElementById('todayLongDate').textContent = fmtLong(TODAY);
 
   ensureToday();
+  pruneOldDays();
   renderDeadlines();
   renderToday();
   renderHistory();
