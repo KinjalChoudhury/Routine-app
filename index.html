@@ -373,7 +373,14 @@
   section.history{margin-bottom:20px;}
   .history-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; cursor:pointer; user-select:none;}
   .history-head h2{font-size:16px; font-weight:500; color:var(--slate);}
-  .history-head .chev{font-size:13px; color:var(--slate); transition:transform .2s;}
+  .history-head .chev{
+  display:flex; align-items:center; justify-content:center;
+  width:28px; height:28px;
+  font-size:13px; color:var(--slate);
+  background:var(--paper-raised); border:1px solid var(--line); border-radius:8px;
+  transition:transform .2s, border-color .2s;
+  }
+  .history-head:hover .chev{border-color:var(--gold);}
   .history-body{display:none; flex-direction:column; gap:8px;}
   .history-body.open{display:flex;}
   .hday{
@@ -469,7 +476,11 @@
   <section class="history">
     <div class="history-head" id="historyToggle">
       <h2>Past days</h2>
-      <span class="chev" id="historyChev">▾</span>
+      <span class="chev" id="historyChev">
+        <svg viewBox="0 0 16 16" width="11" height="11" xmlns="http://www.w3.org/2000/svg">
+         <path d="M3 5.5C3 4.5 4.2 4 5 4.6L8 7L11 4.6C11.8 4 13 4.5 13 5.5C13 5.9 12.8 6.3 12.5 6.5L8.6 9.6C8.25 9.9 7.75 9.9 7.4 9.6L3.5 6.5C3.2 6.3 3 5.9 3 5.5Z" fill="currentColor"/>
+        </svg>
+      </span>
     </div>
     <div class="history-body" id="historyBody"></div>
   </section>
