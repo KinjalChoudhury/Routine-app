@@ -1152,18 +1152,43 @@
 
     let localWriteInFlight = false;
     let syncDebounceTimer = null;
+    let latestPendingData = null;
+
+    function flushPendingSync(){
+      if(syncDebounceTimer === null || latestPendingData === null) return;
+      clearTimeout(syncDebounceTimer);
+      syncDebounceTimer = null;
+      const data = latestPendingData;
+      latestPendingData = null;
+      if(!currentUid) return;
+      localWriteInFlight = true;
+      fb.setDoc(fb.doc(fb.db, 'users', currentUid), data, { merge:false })
+        .catch(err => { console.error('Routine: cloud save failed', err); })
+        .finally(() => { localWriteInFlight = false; });
+    }
 
     window.__ledgerSyncToCloud = (data) => {
       if(!currentUid || applyingRemote) return;
+      latestPendingData = data;
       clearTimeout(syncDebounceTimer);
       syncDebounceTimer = setTimeout(() => {
         syncDebounceTimer = null;
+        latestPendingData = null;
         localWriteInFlight = true;
         fb.setDoc(fb.doc(fb.db, 'users', currentUid), data, { merge:false })
           .catch(err => { console.error('Routine: cloud save failed', err); })
           .finally(() => { localWriteInFlight = false; });
-      }, 700);
+      }, 400);
     };
+
+    // Make sure any pending (debounced) change is written before the page
+    // closes, refreshes, or is backgrounded — otherwise a quick refresh
+    // right after typing can lose the last edit.
+    document.addEventListener('visibilitychange', () => {
+      if(document.visibilityState === 'hidden') flushPendingSync();
+    });
+    window.addEventListener('pagehide', flushPendingSync);
+    window.addEventListener('beforeunload', flushPendingSync);
 
     fb.onAuthStateChanged(fb.auth, async (user) => {
       if(user){
