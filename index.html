@@ -394,6 +394,8 @@
     padding:9px 14px;
   }
   .hday-date{flex:1;}
+  .hday-count{font-variant-numeric:tabular-nums; flex-shrink:0;}
+
   .hday-toggle{
     display:flex; align-items:center; justify-content:center;
     width:24px; height:24px; flex-shrink:0;
@@ -550,13 +552,20 @@
   function escapeAttr(s){ return String(s).replace(/"/g,'&quot;'); }
 
   function freshFixedTasks(){
-    return FIXED_TEMPLATE.map(t => ({
-      key:t.key, label:t.label, locked:t.locked, editable:t.editable, shopping:t.shopping,
-      done:false,
-      topic: t.editable ? '' : undefined,
-      duration: t.editable ? '' : undefined,
-      items: t.shopping ? [] : undefined
-    }));
+    return FIXED_TEMPLATE.map(t => {
+      const task = {
+        key:t.key, label:t.label, locked:t.locked, editable:t.editable, shopping:t.shopping,
+        done:false
+      };
+      if(t.editable){
+        task.topic = '';
+        task.duration = '';
+      }
+      if(t.shopping){
+        task.items = [];
+      }
+      return task;
+    });
   }
 
   function load(){
@@ -1147,6 +1156,13 @@
     let syncDebounceTimer = null;
     let latestPendingData = null;
 
+    // Firestore rejects any field set to JS `undefined` (unlike null/omitted).
+    // Round-tripping through JSON strips those keys out safely, so old or
+    // accidentally-malformed local data can't block a sync.
+    function sanitizeForFirestore(data){
+      return JSON.parse(JSON.stringify(data));
+    }
+
     function flushPendingSync(){
       if(syncDebounceTimer === null || latestPendingData === null) return;
       clearTimeout(syncDebounceTimer);
@@ -1155,7 +1171,7 @@
       latestPendingData = null;
       if(!currentUid) return;
       localWriteInFlight = true;
-      fb.setDoc(fb.doc(fb.db, 'users', currentUid), data, { merge:false })
+      fb.setDoc(fb.doc(fb.db, 'users', currentUid), sanitizeForFirestore(data), { merge:false })
         .catch(err => { console.error('Routine: cloud save failed', err); })
         .finally(() => { localWriteInFlight = false; });
     }
@@ -1168,7 +1184,7 @@
         syncDebounceTimer = null;
         latestPendingData = null;
         localWriteInFlight = true;
-        fb.setDoc(fb.doc(fb.db, 'users', currentUid), data, { merge:false })
+        fb.setDoc(fb.doc(fb.db, 'users', currentUid), sanitizeForFirestore(data), { merge:false })
           .catch(err => { console.error('Routine: cloud save failed', err); })
           .finally(() => { localWriteInFlight = false; });
       }, 400);
