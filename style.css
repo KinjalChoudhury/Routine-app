@@ -361,5 +361,5 @@
     header.top h1{font-size:24px;}
     section.today{padding:18px 16px 20px;}
     .dcard{min-width:190px; max-width:190px;}
-    .sync-note{display:none;}
+    .sync-note{max-width:none; font-size:10px;}
   }
