@@ -97,10 +97,12 @@
   }
   .user-chip .user-avatar{
     width:24px; height:24px; border-radius:50%; border:1px solid var(--line);
+    flex-shrink:0; object-fit:cover;
+  }
+  .user-chip .user-avatar-fallback{
     background:var(--sage-deeper); color:#fff;
     display:flex; align-items:center; justify-content:center;
     font-size:11.5px; font-weight:700; font-family:'Inter';
-    flex-shrink:0;
   }
   .user-chip button{
     background:none; border:none; color:var(--slate); text-decoration:underline;

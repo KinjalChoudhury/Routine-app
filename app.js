@@ -596,10 +596,28 @@
     authBox.innerHTML = '';
     const chip = document.createElement('div');
     chip.className = 'user-chip';
-    const avatar = document.createElement('span');
-    avatar.className = 'user-avatar';
     const displayName = user.displayName || user.email || 'You';
-    avatar.textContent = displayName.trim().charAt(0).toUpperCase();
+
+    let avatar;
+    if(user.photoURL){
+      avatar = document.createElement('img');
+      avatar.className = 'user-avatar';
+      avatar.src = user.photoURL;
+      avatar.alt = '';
+      avatar.referrerPolicy = 'no-referrer';
+      avatar.addEventListener('error', () => {
+        // Fall back to an initial if the photo fails to load
+        const fallback = document.createElement('span');
+        fallback.className = 'user-avatar user-avatar-fallback';
+        fallback.textContent = displayName.trim().charAt(0).toUpperCase();
+        avatar.replaceWith(fallback);
+      });
+    } else {
+      avatar = document.createElement('span');
+      avatar.className = 'user-avatar user-avatar-fallback';
+      avatar.textContent = displayName.trim().charAt(0).toUpperCase();
+    }
+
     const name = document.createElement('span');
     name.textContent = displayName;
     const signOutBtn = document.createElement('button');
