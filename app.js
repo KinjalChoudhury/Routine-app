@@ -188,13 +188,8 @@
 
   function fixedTask(key){ return state.days[TODAY].fixed.find(t => t.key === key); }
 
-  function renderToday(){
+  function updateProgress(){
     const day = state.days[TODAY];
-    taskList.innerHTML = '';
-
-    day.fixed.forEach(t => renderFixedRow(t));
-    day.extra.forEach(t => renderExtraRow(t));
-
     const allDone = [...day.fixed.map(t=>t.done), ...day.extra.map(t=>t.done)];
     const total = allDone.length;
     const done = allDone.filter(Boolean).length;
@@ -202,6 +197,16 @@
     progressFill.style.width = pct + '%';
     progressText.textContent = done + ' of ' + total + ' done';
     progressPct.textContent = pct + '%';
+  }
+
+  function renderToday(){
+    const day = state.days[TODAY];
+    taskList.innerHTML = '';
+
+    day.fixed.forEach(t => renderFixedRow(t));
+    day.extra.forEach(t => renderExtraRow(t));
+
+    updateProgress();
   }
 
   function renderFixedRow(t){
@@ -355,6 +360,24 @@
       const shopUl = document.createElement('ul');
       shopUl.className = 'shop-list';
 
+      // Keep the main "Buy things" checkbox in sync with the shopping list:
+      // auto-check it when every item is done, auto-uncheck as soon as a
+      // new (unchecked) item is added or anything becomes unchecked again.
+      // Updates the row in place (no full re-render) so the shopping list
+      // stays open instead of snapping shut.
+      function syncBuyThingsDone(){
+        const shouldBeDone = t.items.length > 0 && t.items.every(i => i.done);
+        if(t.done !== shouldBeDone){
+          t.done = shouldBeDone;
+          checkbox.checked = t.done;
+          li.classList.toggle('done', t.done);
+          save();
+          updateProgress();
+          return true;
+        }
+        return false;
+      }
+
       function renderShop(){
         shopUl.innerHTML = '';
         t.items.forEach(item => {
@@ -366,6 +389,7 @@
           cb.addEventListener('change', () => {
             item.done = cb.checked;
             save();
+            syncBuyThingsDone();
             renderShop();
             refreshShopToggleLabel();
           });
@@ -378,6 +402,7 @@
           del.addEventListener('click', () => {
             t.items = t.items.filter(i => i.id !== item.id);
             save();
+            syncBuyThingsDone();
             renderShop();
             refreshShopToggleLabel();
           });
@@ -399,6 +424,7 @@
           t.items.push({ id: cryptoId(), name: val, done:false });
           addInput.value = '';
           save();
+          syncBuyThingsDone();
           renderShop();
           refreshShopToggleLabel();
         }
