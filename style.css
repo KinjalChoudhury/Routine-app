@@ -236,11 +236,11 @@
   .lock-icon{font-size:10.5px; color:var(--peach); opacity:0.85; letter-spacing:0.02em; font-weight:600;}
 
   .task-del{
-    background:none; border:none; color:var(--line); cursor:pointer;
+    background:none; border:none; color:var(--slate); cursor:pointer;
     font-size:16px; padding:2px 6px; line-height:1; opacity:0; transition:opacity .15s, color .15s;
   }
-  ul.tasklist > li.trow:hover .task-del{opacity:1;}
-  .task-del:hover{color:var(--clay);}
+  ul.tasklist > li.trow:hover .task-del{opacity:0.7;}
+  .task-del:hover{color:var(--clay); opacity:1;}
   .task-del:disabled{display:none;}
 
   .empty-today{font-size:13.5px; color:var(--slate); font-style:italic; padding:14px 6px;}
@@ -298,8 +298,8 @@
   .shop-list .checkbox:checked::after{left:4px; top:1px; width:4px; height:8px;}
   .shop-item-text{flex:1;}
   .shop-item-text.done{color:var(--slate); text-decoration:line-through;}
-  .shop-del{background:none; border:none; color:var(--line); cursor:pointer; font-size:13px; padding:0 4px;}
-  .shop-del:hover{color:var(--clay);}
+  .shop-del{background:none; border:none; color:var(--slate); cursor:pointer; font-size:13px; padding:0 4px; opacity:0.7;}
+  .shop-del:hover{color:var(--clay); opacity:1;}
   .shop-add{display:flex; gap:6px; margin-top:6px;}
   .shop-add input{font-size:12.5px; padding:5px 8px; flex:1;}
   .shop-add button{

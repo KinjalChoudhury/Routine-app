@@ -37,6 +37,106 @@
   }
   function escapeAttr(s){ return String(s).replace(/"/g,'&quot;'); }
 
+  function parseDuration(str){
+    if(!str) return { h:0, m:0 };
+    const hMatch = str.match(/(\d+)\s*h/);
+    const mMatch = str.match(/(\d+)\s*m/);
+    return { h: hMatch ? parseInt(hMatch[1]) : 0, m: mMatch ? parseInt(mMatch[1]) : 0 };
+  }
+  function formatDuration(h, m){
+    if(h === 0 && m === 0) return '';
+    const parts = [];
+    if(h > 0) parts.push(h + (h === 1 ? ' hr' : ' hrs'));
+    if(m > 0) parts.push(m + ' min');
+    return parts.join(' ');
+  }
+
+  // Attaches a "Set time" button + hours/minutes flyout to `container`,
+  // reading/writing `task.duration` and calling `save()` on change.
+  // Shared by Study 1-4 and by today-only extra tasks.
+  function attachDurationPicker(task, container){
+    const wrap = document.createElement('div');
+    wrap.className = 'dur-picker-wrap';
+    wrap.innerHTML = `
+      <button type="button" class="dur-picker-btn">${task.duration ? escapeAttr(task.duration) : 'Set time'}</button>
+      <div class="dur-flyout" hidden>
+        <div class="dur-flyout-row">
+          <div class="dur-col">
+            <span class="dur-col-label">Hours</span>
+            <select class="dur-hours"></select>
+          </div>
+          <div class="dur-col">
+            <span class="dur-col-label">Minutes</span>
+            <select class="dur-minutes"></select>
+          </div>
+        </div>
+        <div class="dur-flyout-actions">
+          <button type="button" class="dur-clear">Clear</button>
+          <button type="button" class="dur-done">Done</button>
+        </div>
+      </div>
+    `;
+
+    const durBtn = wrap.querySelector('.dur-picker-btn');
+    const flyout = wrap.querySelector('.dur-flyout');
+    const hoursSel = wrap.querySelector('.dur-hours');
+    const minsSel = wrap.querySelector('.dur-minutes');
+    const clearBtn = wrap.querySelector('.dur-clear');
+    const doneBtn = wrap.querySelector('.dur-done');
+
+    for(let h = 0; h <= 6; h++){
+      const opt = document.createElement('option');
+      opt.value = h;
+      opt.textContent = h + (h === 1 ? ' hr' : ' hrs');
+      hoursSel.appendChild(opt);
+    }
+    for(let m = 0; m < 60; m += 5){
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m + ' min';
+      minsSel.appendChild(opt);
+    }
+
+    const initial = parseDuration(task.duration);
+    hoursSel.value = String(initial.h);
+    minsSel.value = String(Math.round(initial.m / 5) * 5);
+
+    function closeFlyout(){
+      flyout.hidden = true;
+      document.removeEventListener('click', outsideClickHandler);
+    }
+    function outsideClickHandler(e){
+      if(!wrap.contains(e.target)) closeFlyout();
+    }
+    durBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = !flyout.hidden;
+      document.querySelectorAll('.dur-flyout').forEach(f => f.hidden = true);
+      if(!isOpen){
+        flyout.hidden = false;
+        setTimeout(() => document.addEventListener('click', outsideClickHandler), 0);
+      }
+    });
+    clearBtn.addEventListener('click', () => {
+      hoursSel.value = '0';
+      minsSel.value = '0';
+      task.duration = '';
+      durBtn.textContent = 'Set time';
+      save();
+      closeFlyout();
+    });
+    doneBtn.addEventListener('click', () => {
+      const h = parseInt(hoursSel.value);
+      const m = parseInt(minsSel.value);
+      task.duration = formatDuration(h, m);
+      durBtn.textContent = task.duration || 'Set time';
+      save();
+      closeFlyout();
+    });
+
+    container.appendChild(wrap);
+  }
+
   function freshFixedTasks(){
     return FIXED_TEMPLATE.map(t => {
       const task = {
@@ -249,25 +349,6 @@
         <span class="field-label">Topic</span>
         <input type="text" class="topic-input" placeholder="${t.label}" value="${escapeAttr(t.topic || '')}" maxlength="60">
         <span class="field-label">Duration</span>
-        <div class="dur-picker-wrap">
-          <button type="button" class="dur-picker-btn">${t.duration ? escapeAttr(t.duration) : 'Set time'}</button>
-          <div class="dur-flyout" hidden>
-            <div class="dur-flyout-row">
-              <div class="dur-col">
-                <span class="dur-col-label">Hours</span>
-                <select class="dur-hours"></select>
-              </div>
-              <div class="dur-col">
-                <span class="dur-col-label">Minutes</span>
-                <select class="dur-minutes"></select>
-              </div>
-            </div>
-            <div class="dur-flyout-actions">
-              <button type="button" class="dur-clear">Clear</button>
-              <button type="button" class="dur-done">Done</button>
-            </div>
-          </div>
-        </div>
       `;
       const topicInput = editWrap.querySelector('.topic-input');
       topicInput.addEventListener('input', () => {
@@ -276,76 +357,7 @@
         save();
       });
 
-      const durBtn = editWrap.querySelector('.dur-picker-btn');
-      const flyout = editWrap.querySelector('.dur-flyout');
-      const hoursSel = editWrap.querySelector('.dur-hours');
-      const minsSel = editWrap.querySelector('.dur-minutes');
-      const clearBtn = editWrap.querySelector('.dur-clear');
-      const doneBtn = editWrap.querySelector('.dur-done');
-
-      for(let h = 0; h <= 6; h++){
-        const opt = document.createElement('option');
-        opt.value = h;
-        opt.textContent = h + (h === 1 ? ' hr' : ' hrs');
-        hoursSel.appendChild(opt);
-      }
-      for(let m = 0; m < 60; m += 5){
-        const opt = document.createElement('option');
-        opt.value = m;
-        opt.textContent = m + ' min';
-        minsSel.appendChild(opt);
-      }
-
-      function parseDuration(str){
-        if(!str) return { h:0, m:0 };
-        const hMatch = str.match(/(\d+)\s*h/);
-        const mMatch = str.match(/(\d+)\s*m/);
-        return { h: hMatch ? parseInt(hMatch[1]) : 0, m: mMatch ? parseInt(mMatch[1]) : 0 };
-      }
-      function formatDuration(h, m){
-        if(h === 0 && m === 0) return '';
-        const parts = [];
-        if(h > 0) parts.push(h + (h === 1 ? ' hr' : ' hrs'));
-        if(m > 0) parts.push(m + ' min');
-        return parts.join(' ');
-      }
-
-      const initial = parseDuration(t.duration);
-      hoursSel.value = String(initial.h);
-      minsSel.value = String(Math.round(initial.m / 5) * 5);
-
-      function closeFlyout(){
-        flyout.hidden = true;
-        document.removeEventListener('click', outsideClickHandler);
-      }
-      function outsideClickHandler(e){
-        if(!editWrap.contains(e.target)) closeFlyout();
-      }
-      durBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isOpen = !flyout.hidden;
-        document.querySelectorAll('.dur-flyout').forEach(f => f.hidden = true);
-        if(!isOpen){
-          flyout.hidden = false;
-          setTimeout(() => document.addEventListener('click', outsideClickHandler), 0);
-        }
-      });
-      clearBtn.addEventListener('click', () => {
-        hoursSel.value = '0';
-        minsSel.value = '0';
-        t.duration = '';
-        durBtn.textContent = 'Set time';
-        save();
-        closeFlyout();
-      });
-      doneBtn.addEventListener('click', () => {
-        const h = parseInt(hoursSel.value);
-        const m = parseInt(minsSel.value);
-        t.duration = formatDuration(h, m);
-        durBtn.textContent = t.duration || 'Set time';
-        save();
-        closeFlyout();
-      });
+      attachDurationPicker(t, editWrap);
 
       body.appendChild(editWrap);
     }
@@ -483,6 +495,15 @@
     main.appendChild(tag);
     body.appendChild(main);
 
+    const editWrap = document.createElement('div');
+    editWrap.className = 'study-edit';
+    const durLabel = document.createElement('span');
+    durLabel.className = 'field-label';
+    durLabel.textContent = 'Duration';
+    editWrap.appendChild(durLabel);
+    attachDurationPicker(t, editWrap);
+    body.appendChild(editWrap);
+
     const del = document.createElement('button');
     del.className = 'task-del';
     del.textContent = '✕';
@@ -511,7 +532,7 @@
     const input = document.getElementById('newTaskName');
     const name = input.value.trim();
     if(!name) { input.focus(); return; }
-    state.days[TODAY].extra.push({ id: cryptoId(), name, done:false });
+    state.days[TODAY].extra.push({ id: cryptoId(), name, done:false, duration:'' });
     input.value = '';
     save();
     renderToday();
@@ -571,7 +592,8 @@
       extra.forEach(t => {
         const li = document.createElement('li');
         li.className = t.done ? 'done' : '';
-        li.textContent = (t.done ? '✓ ' : '— ') + t.name + ' (today only)';
+        const durText = t.duration ? `, ${t.duration}` : '';
+        li.textContent = (t.done ? '✓ ' : '— ') + t.name + ' (today only' + durText + ')';
         ul.appendChild(li);
       });
       if(fixed.length === 0 && extra.length === 0){
