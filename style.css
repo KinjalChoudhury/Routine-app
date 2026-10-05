@@ -121,12 +121,30 @@
   .section-head h2{font-size:24px; font-weight:600; color:var(--ink);}
   .section-head .count{font-size:12px; color:var(--slate); font-variant-numeric: tabular-nums;}
 
+  .rail-wrap{
+    display:flex; align-items:center; gap:6px;
+  }
   .rail{
     display:flex; gap:12px; overflow-x:auto; padding:4px 2px 12px;
     scroll-snap-type:x proximity;
+    flex:1; min-width:0;
   }
   .rail::-webkit-scrollbar{height:6px;}
   .rail::-webkit-scrollbar-thumb{background:var(--line); border-radius:10px;}
+
+  .rail-arrow{
+    display:flex; align-items:center; justify-content:center;
+    width:30px; height:30px; flex-shrink:0;
+    color:var(--slate);
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:9px;
+    cursor:pointer; transition:border-color .15s, color .15s, opacity .15s;
+    margin-bottom:12px;
+  }
+  .rail-arrow:hover{border-color:var(--gold); color:var(--ink);}
+  .rail-arrow:disabled{opacity:0.35; cursor:default; pointer-events:none;}
+  @media (max-width:520px){
+    .rail-arrow{display:none;}
+  }
 
   .dcard{
     scroll-snap-align:start;

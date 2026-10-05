@@ -210,6 +210,30 @@
   // ---------- Deadlines ----------
   const deadlineRail = document.getElementById('deadlineRail');
   const deadlineCount = document.getElementById('deadlineCount');
+  const railArrowLeft = document.getElementById('railArrowLeft');
+  const railArrowRight = document.getElementById('railArrowRight');
+
+  function updateRailArrows(){
+    if(!railArrowLeft || !railArrowRight) return;
+    const maxScroll = deadlineRail.scrollWidth - deadlineRail.clientWidth;
+    railArrowLeft.disabled = deadlineRail.scrollLeft <= 2;
+    railArrowRight.disabled = deadlineRail.scrollLeft >= maxScroll - 2;
+  }
+
+  function scrollRailByOneCard(direction){
+    const firstCard = deadlineRail.querySelector('.dcard');
+    if(!firstCard) return;
+    const cardWidth = firstCard.getBoundingClientRect().width;
+    const gap = 12; // matches .rail's gap in CSS
+    deadlineRail.scrollBy({ left: direction * (cardWidth + gap), behavior:'smooth' });
+  }
+
+  if(railArrowLeft && railArrowRight){
+    railArrowLeft.addEventListener('click', () => scrollRailByOneCard(-1));
+    railArrowRight.addEventListener('click', () => scrollRailByOneCard(1));
+    deadlineRail.addEventListener('scroll', updateRailArrows);
+    window.addEventListener('resize', updateRailArrows);
+  }
 
   function renderDeadlines(){
     const active = state.deadlines.filter(d => !d.done).sort((a,b) => a.due.localeCompare(b.due));
@@ -218,6 +242,7 @@
 
     if(active.length === 0){
       deadlineRail.innerHTML = '<div class="empty-rail">No deadlines yet. Add one below — you\'ll be reminded here every day until it\'s done.</div>';
+      updateRailArrows();
       return;
     }
 
@@ -251,6 +276,8 @@
       card.querySelector('.name').textContent = item.name;
       deadlineRail.appendChild(card);
     });
+
+    updateRailArrows();
   }
 
   deadlineRail.addEventListener('click', (e) => {
