@@ -215,9 +215,17 @@
 
   function updateRailArrows(){
     if(!railArrowLeft || !railArrowRight) return;
-    const maxScroll = deadlineRail.scrollWidth - deadlineRail.clientWidth;
-    railArrowLeft.disabled = deadlineRail.scrollLeft <= 2;
-    railArrowRight.disabled = deadlineRail.scrollLeft >= maxScroll - 2;
+    const railWrap = deadlineRail.closest('.rail-wrap');
+    const cardCount = deadlineRail.querySelectorAll('.dcard').length;
+    if(railWrap) railWrap.classList.toggle('has-overflow', cardCount > 3);
+    // Measuring scrollWidth right after the DOM changes can catch the
+    // browser mid-layout and read a stale value — wait a frame so the
+    // cards have actually been laid out before measuring.
+    requestAnimationFrame(() => {
+      const maxScroll = deadlineRail.scrollWidth - deadlineRail.clientWidth;
+      railArrowLeft.disabled = deadlineRail.scrollLeft <= 2;
+      railArrowRight.disabled = deadlineRail.scrollLeft >= maxScroll - 2;
+    });
   }
 
   function scrollRailByOneCard(direction){
