@@ -330,8 +330,6 @@
     background:var(--sage); color:#fff; border:none; cursor:pointer;
   }
 
-  .tpl-hint{font-size:11.5px; color:var(--slate); margin-top:12px; line-height:1.5;}
-
   /* ---------- History ---------- */
   section.history{margin-bottom:20px;}
   .history-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; cursor:pointer; user-select:none;}

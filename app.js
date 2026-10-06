@@ -321,8 +321,6 @@
   const progressText = document.getElementById('progressText');
   const progressPct = document.getElementById('progressPct');
 
-  function fixedTask(key){ return state.days[TODAY].fixed.find(t => t.key === key); }
-
   function updateProgress(){
     const day = state.days[TODAY];
     const allDone = [...day.fixed.map(t=>t.done), ...day.extra.map(t=>t.done)];
@@ -420,9 +418,7 @@
           li.classList.toggle('done', t.done);
           save();
           updateProgress();
-          return true;
         }
-        return false;
       }
 
       function renderShop(){
@@ -592,7 +588,6 @@
       const all = [...fixed.map(t=>t.done), ...extra.map(t=>t.done)];
       const total = all.length;
       const done = all.filter(Boolean).length;
-      const pct = total ? Math.round((done/total)*100) : 0;
 
       const wrap = document.createElement('div');
       wrap.className = 'hday-wrap';
