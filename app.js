@@ -651,55 +651,6 @@
     historyChev.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
   });
 
-  // ---------- Calendar panel (embedded Google Calendar agenda) ----------
-  const calToggle = document.getElementById('calToggle');
-  const calChev = document.getElementById('calChev');
-  const calBody = document.getElementById('calBody');
-  const calFrame = document.getElementById('calFrame');
-  const calEmpty = document.getElementById('calEmpty');
-  let calEmail = null;
-
-  function calendarSrc(email){
-    const params = new URLSearchParams({
-      src: email,
-      mode: 'AGENDA',
-      ctz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-      bgcolor: '#FFFFFF',
-      showTitle: '0', showNav: '0', showDate: '0', showPrint: '0',
-      showTabs: '0', showCalendars: '0', showTz: '0'
-    });
-    return 'https://calendar.google.com/calendar/embed?' + params.toString();
-  }
-
-  // Only touches the iframe while the panel is open, so Google's page
-  // isn't loaded until you actually ask for it.
-  function refreshCalendar(){
-    if(calBody.hidden) return;
-    if(calEmail){
-      const src = calendarSrc(calEmail);
-      if(calFrame.getAttribute('src') !== src) calFrame.setAttribute('src', src);
-      calFrame.hidden = false;
-      calEmpty.hidden = true;
-    } else {
-      calFrame.removeAttribute('src');
-      calFrame.hidden = true;
-      calEmpty.hidden = false;
-    }
-  }
-
-  function setCalendarUser(email){
-    calEmail = email || null;
-    refreshCalendar();
-  }
-
-  calToggle.addEventListener('click', () => {
-    const open = calBody.hidden;
-    calBody.hidden = !open;
-    calToggle.setAttribute('aria-expanded', String(open));
-    calChev.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
-    refreshCalendar();
-  });
-
   // ---------- Auth UI (Google sign-in via Firebase, once configured) ----------
   const authBox = document.getElementById('authBox');
   const syncNote = document.getElementById('syncNote');
@@ -834,7 +785,6 @@
       if(user){
         currentUid = user.uid;
         renderSignedIn(user);
-        setCalendarUser(user.email);
         try{
           const snap = await fb.getDoc(fb.doc(fb.db, 'users', user.uid));
           if(snap.exists()){
@@ -868,7 +818,6 @@
       } else {
         currentUid = null;
         renderSignedOut();
-        setCalendarUser(null);
         syncNote.textContent = '';
       }
     });
