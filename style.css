@@ -121,34 +121,37 @@
   .section-head h2{font-size:24px; font-weight:600; color:var(--ink);}
   .section-head .count{font-size:12px; color:var(--slate); font-variant-numeric: tabular-nums;}
 
-  .rail-wrap{
-    display:flex; align-items:stretch; gap:10px;
-  }
+  .rail-wrap{position:relative;}
   .rail{
     display:flex; gap:12px; overflow-x:auto; padding:4px 2px 12px;
     scroll-snap-type:x proximity;
-    flex:1 1 auto; min-width:0; order:2;
   }
   .rail::-webkit-scrollbar{height:6px;}
   .rail::-webkit-scrollbar-thumb{background:var(--line); border-radius:10px;}
 
+  /* Arrows float over the carousel edges and only appear on hover,
+     so the cards keep the full row width. */
   .rail-arrow{
     display:none; align-items:center; justify-content:center;
-    width:32px; min-width:32px; flex-shrink:0;
-    color:var(--slate);
-    background:var(--paper-raised); border:1px solid var(--line); border-radius:9px;
-    cursor:pointer; transition:border-color .15s, color .15s, opacity .15s;
-    align-self:center;
+    position:absolute; top:calc(50% - 4px); transform:translateY(-50%); z-index:2;
+    width:34px; height:34px; padding:0;
+    color:var(--ink); background:var(--paper-raised);
+    border:1px solid var(--line); border-radius:50%;
+    box-shadow:var(--shadow); cursor:pointer;
+    opacity:0; pointer-events:none;
+    transition:opacity .15s, border-color .15s;
   }
   .rail-wrap.has-overflow .rail-arrow{display:flex;}
-  .rail-arrow-left{order:1;}
-  .rail-arrow-right{order:3;}
-  .rail-arrow:hover{border-color:var(--gold); color:var(--ink);}
-  .rail-arrow:disabled{opacity:0.3; cursor:default; pointer-events:none;}
+  .rail-arrow-left{left:6px;}
+  .rail-arrow-right{right:6px;}
+  .rail-wrap:hover .rail-arrow,
+  .rail-wrap:focus-within .rail-arrow{opacity:1; pointer-events:auto;}
+  .rail-arrow:hover{border-color:var(--gold);}
+  .rail-wrap:hover .rail-arrow:disabled,
+  .rail-wrap:focus-within .rail-arrow:disabled{opacity:0; pointer-events:none;}
 
   @media (max-width:520px){
     .rail-arrow{display:none !important;}
-    .rail-wrap{gap:0;}
   }
 
   .dcard{
@@ -174,6 +177,17 @@
   .dcard .name{font-size:15px; font-weight:600; line-height:1.3; color:var(--ink);}
   .dcard .due{font-size:12px; color:var(--slate);}
   .dcard .actions{display:flex; gap:8px; margin-top:auto; padding-top:8px;}
+  .dcard.editing{border-color:var(--gold); gap:8px;}
+  .dcard input{width:100%; min-width:0; font-size:13.5px; padding:8px 10px;}
+  .dcard .btn-edit{
+    position:absolute; top:12px; right:12px;
+    display:flex; align-items:center; justify-content:center;
+    width:26px; height:26px; padding:0;
+    color:var(--slate); background:var(--paper);
+    border:1px solid var(--line); border-radius:7px; cursor:pointer;
+    transition:border-color .15s, color .15s;
+  }
+  .dcard .btn-edit:hover{border-color:var(--gold); color:var(--ink);}
   .dcard button{
     font-family:'Inter'; font-size:12px; font-weight:600; cursor:pointer;
     border:none; border-radius:8px; padding:6px 10px;
@@ -325,6 +339,11 @@
   .shop-del:hover{color:var(--clay); opacity:1;}
   .shop-add{display:flex; gap:6px; margin-top:6px;}
   .shop-add input{font-size:12.5px; padding:5px 8px; flex:1;}
+  .shop-add .shop-name-input{min-width:0;}
+  .shop-add .shop-qty-input{flex:0 0 72px; width:72px; min-width:0;}
+  .shop-edit-btn{display:flex; align-items:center; background:none; border:none; color:var(--slate); cursor:pointer; padding:0 4px; opacity:0.7;}
+  .shop-edit-btn:hover{color:var(--ink); opacity:1;}
+  .shop-add .shop-cancel{background:transparent; color:var(--slate); border:1px solid var(--line);}
   .shop-add button{
     font-size:11.5px; font-weight:600; padding:5px 10px; border-radius:7px;
     background:var(--sage); color:#fff; border:none; cursor:pointer;
@@ -372,6 +391,8 @@
   .hday-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:5px;}
   .hday-list li{font-size:12.5px; color:var(--slate);}
   .hday-list li.done{color:var(--sage-deep);}
+  .hday-sublist{list-style:none; margin:5px 0 2px 14px; padding:0; display:flex; flex-direction:column; gap:3px;}
+  .hday-sublist li{font-size:12px;}
 
   footer.note{max-width:920px; margin:8px auto 0; padding:0 20px 30px; font-size:11.5px; color:var(--slate); line-height:1.6;}
 

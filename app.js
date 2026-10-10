@@ -243,6 +243,8 @@
     window.addEventListener('resize', updateRailArrows);
   }
 
+  let editingDeadlineId = null;
+
   function renderDeadlines(){
     const active = state.deadlines.filter(d => !d.done).sort((a,b) => a.due.localeCompare(b.due));
     deadlineRail.innerHTML = '';
@@ -258,6 +260,27 @@
       const diff = daysBetween(TODAY, item.due);
       const card = document.createElement('div');
       card.className = 'dcard';
+
+      if(item.id === editingDeadlineId){
+        card.classList.add('editing');
+        card.innerHTML = `
+          <input type="text" class="edit-name" maxlength="80" aria-label="Deadline name">
+          <input type="date" class="edit-date" aria-label="Due date">
+          <div class="actions">
+            <button class="btn-done" data-action="save" data-id="${item.id}">Save</button>
+            <button class="btn-del" data-action="cancel" data-id="${item.id}">Cancel</button>
+          </div>
+        `;
+        card.querySelector('.edit-name').value = item.name;
+        card.querySelector('.edit-date').value = item.due;
+        card.addEventListener('keydown', (e) => {
+          if(e.key === 'Enter'){ e.preventDefault(); saveDeadlineEdit(item.id, card); }
+          else if(e.key === 'Escape'){ editingDeadlineId = null; renderDeadlines(); }
+        });
+        deadlineRail.appendChild(card);
+        return;
+      }
+
       let badgeText;
       if(diff < 0){
         card.classList.add('overdue');
@@ -273,6 +296,9 @@
       }
 
       card.innerHTML = `
+        <button class="btn-edit" data-action="edit" data-id="${item.id}" aria-label="Edit deadline">
+          <svg viewBox="0 0 16 16" width="12" height="12" xmlns="http://www.w3.org/2000/svg"><path d="M10.8 2.7l2.5 2.5M2.5 13.5l.6-2.9 7.7-7.9 2.5 2.5-7.9 7.7-2.9.6z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        </button>
         <span class="badge">${badgeText}</span>
         <div class="name"></div>
         <div class="due">Due ${fmtShort(item.due)}</div>
@@ -285,13 +311,33 @@
       deadlineRail.appendChild(card);
     });
 
+    const editNameEl = deadlineRail.querySelector('.edit-name');
+    if(editNameEl) editNameEl.focus();
+
     updateRailArrows();
+  }
+
+  function saveDeadlineEdit(id, card){
+    const nameEl = card.querySelector('.edit-name');
+    const dateEl = card.querySelector('.edit-date');
+    const name = nameEl.value.trim();
+    const due = dateEl.value;
+    if(!name){ nameEl.focus(); return; }
+    if(!due){ dateEl.focus(); return; }
+    const d = state.deadlines.find(x => x.id === id);
+    if(d){ d.name = name; d.due = due; }
+    editingDeadlineId = null;
+    save();
+    renderDeadlines();
   }
 
   deadlineRail.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
     if(!btn) return;
     const id = btn.dataset.id;
+    if(btn.dataset.action === 'edit'){ editingDeadlineId = id; renderDeadlines(); return; }
+    if(btn.dataset.action === 'cancel'){ editingDeadlineId = null; renderDeadlines(); return; }
+    if(btn.dataset.action === 'save'){ saveDeadlineEdit(id, btn.closest('.dcard')); return; }
     if(btn.dataset.action === 'done'){
       const d = state.deadlines.find(x => x.id === id);
       if(d) d.done = true;
@@ -421,9 +467,39 @@
         }
       }
 
+      let editingItemId = null;
+
       function renderShop(){
         shopUl.innerHTML = '';
         t.items.forEach(item => {
+          if(item.id === editingItemId){
+            const eli = document.createElement('li');
+            eli.className = 'shop-add shop-edit';
+            eli.innerHTML = `<input type="text" class="shop-name-input" maxlength="60" aria-label="Item name"><input type="text" class="shop-qty-input" maxlength="20" placeholder="Qty" aria-label="Quantity"><button type="button" class="shop-save">Save</button><button type="button" class="shop-cancel" aria-label="Cancel edit">✕</button>`;
+            const nameEl = eli.querySelector('.shop-name-input');
+            const qtyEl = eli.querySelector('.shop-qty-input');
+            nameEl.value = item.name;
+            qtyEl.value = item.qty || '';
+            function saveEdit(){
+              const name = nameEl.value.trim();
+              if(!name){ nameEl.focus(); return; }
+              item.name = name;
+              item.qty = qtyEl.value.trim();
+              editingItemId = null;
+              save();
+              renderShop();
+            }
+            function cancelEdit(){ editingItemId = null; renderShop(); }
+            eli.querySelector('.shop-save').addEventListener('click', saveEdit);
+            eli.querySelector('.shop-cancel').addEventListener('click', cancelEdit);
+            [nameEl, qtyEl].forEach(el => el.addEventListener('keydown', (e) => {
+              if(e.key === 'Enter'){ e.preventDefault(); saveEdit(); }
+              else if(e.key === 'Escape'){ cancelEdit(); }
+            }));
+            shopUl.appendChild(eli);
+            nameEl.focus();
+            return;
+          }
           const sli = document.createElement('li');
           const cb = document.createElement('input');
           cb.type = 'checkbox';
@@ -438,7 +514,7 @@
           });
           const txt = document.createElement('span');
           txt.className = 'shop-item-text' + (item.done ? ' done' : '');
-          txt.textContent = item.name;
+          txt.textContent = (item.qty ? item.qty + ' ' : '') + item.name;
           const del = document.createElement('button');
           del.className = 'shop-del';
           del.textContent = '✕';
@@ -451,6 +527,12 @@
           });
           sli.appendChild(cb);
           sli.appendChild(txt);
+          const editBtn = document.createElement('button');
+          editBtn.className = 'shop-edit-btn';
+          editBtn.setAttribute('aria-label', 'Edit item');
+          editBtn.innerHTML = '<svg viewBox="0 0 16 16" width="12" height="12" xmlns="http://www.w3.org/2000/svg"><path d="M10.8 2.7l2.5 2.5M2.5 13.5l.6-2.9 7.7-7.9 2.5 2.5-7.9 7.7-2.9.6z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
+          editBtn.addEventListener('click', () => { editingItemId = item.id; renderShop(); });
+          sli.appendChild(editBtn);
           sli.appendChild(del);
           shopUl.appendChild(sli);
         });
@@ -458,14 +540,16 @@
         const addRow = document.createElement('li');
         addRow.className = 'shop-add';
         addRow.style.listStyle = 'none';
-        addRow.innerHTML = `<input type="text" placeholder="e.g. Milk, notebooks" maxlength="60"><button type="button">Add</button>`;
-        const addInput = addRow.querySelector('input');
+        addRow.innerHTML = `<input type="text" class="shop-name-input" placeholder="e.g. Milk, notebooks" maxlength="60"><input type="text" class="shop-qty-input" placeholder="Qty" maxlength="20" aria-label="Quantity"><button type="button">Add</button>`;
+        const addInput = addRow.querySelector('.shop-name-input');
+        const qtyInput = addRow.querySelector('.shop-qty-input');
         const addBtn = addRow.querySelector('button');
         function addItem(){
           const val = addInput.value.trim();
           if(!val) return;
-          t.items.push({ id: cryptoId(), name: val, done:false });
+          t.items.push({ id: cryptoId(), name: val, qty: qtyInput.value.trim(), done:false });
           addInput.value = '';
+          qtyInput.value = '';
           save();
           syncBuyThingsDone();
           renderShop();
@@ -473,6 +557,7 @@
         }
         addBtn.addEventListener('click', addItem);
         addInput.addEventListener('keydown', (e) => { if(e.key==='Enter') addItem(); });
+        qtyInput.addEventListener('keydown', (e) => { if(e.key==='Enter') addItem(); });
         shopUl.appendChild(addRow);
       }
 
@@ -617,6 +702,17 @@
         const nameText = (t.editable && t.topic) ? t.topic : t.label;
         const durText = (t.editable && t.duration) ? ` (${t.duration})` : '';
         li.textContent = (t.done ? '✓ ' : '— ') + nameText + durText;
+        if(t.shopping && t.items && t.items.length){
+          const sub = document.createElement('ul');
+          sub.className = 'hday-sublist';
+          t.items.forEach(item => {
+            const sli = document.createElement('li');
+            sli.className = item.done ? 'done' : '';
+            sli.textContent = (item.done ? '✓ ' : '— ') + (item.qty ? item.qty + ' ' : '') + item.name;
+            sub.appendChild(sli);
+          });
+          li.appendChild(sub);
+        }
         ul.appendChild(li);
       });
       extra.forEach(t => {
